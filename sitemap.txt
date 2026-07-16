@@ -1,12 +1,12 @@
 https://wangchujiang.com/dock-lift/CHANGELOG.html
 https://wangchujiang.com/dock-lift/CHANGELOG.zh.html
-https://wangchujiang.com/dock-lift/feedback.zh.html
 https://wangchujiang.com/dock-lift/feedback.html
 https://wangchujiang.com/dock-lift/privacy-policy.html
+https://wangchujiang.com/dock-lift/feedback.zh.html
 https://wangchujiang.com/dock-lift/privacy-policy.zh.html
 https://wangchujiang.com/dock-lift/terms-of-service.html
-https://wangchujiang.com/dock-lift/usage.html
 https://wangchujiang.com/dock-lift/terms-of-service.zh.html
+https://wangchujiang.com/dock-lift/usage.html
 https://wangchujiang.com/dock-lift/usage.zh.html
 https://wangchujiang.com/dock-lift/index.html
 https://wangchujiang.com/dock-lift/index.zh.html
