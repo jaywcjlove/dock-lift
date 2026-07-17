@@ -1,0 +1,21 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+  <channel>
+    <title>DockLift</title>
+    <link>https://github.com/jaywcjlove/docklift</link>
+    <description>DockLift release feed</description>
+    <language>en</language>
+    <item>
+      <title>1.0</title>
+      <pubDate>Fri, 17 Jul 2026 10:37:15 +0800</pubDate>
+      <link>https://github.com/jaywcjlove/dock-lift</link>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<ul>
+<li>released v1.0.0</li>
+</ul>]]></description>
+      <enclosure url="https://github.com/jaywcjlove/dock-lift/releases/download/v1.0.0/DockLift_v1.0.0.zip" length="3105160" type="application/octet-stream" sparkle:edSignature="XgPNzu/labyFfaS31OdeQ8COOwJp8Qku19sBPajj70zobaNlyR4vbvz2yg5NdKFZ5HmT2p5XOsRA17KvG9hHBA=="/>
+    </item>
+  </channel>
+</rss>
