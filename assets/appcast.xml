@@ -6,6 +6,21 @@
     <description>DockLift release feed</description>
     <language>en</language>
     <item>
+      <title>1.1</title>
+      <pubDate>Fri, 17 Jul 2026 23:39:09 +0800</pubDate>
+      <link>https://github.com/jaywcjlove/dock-lift</link>
+      <sparkle:version>3</sparkle:version>
+      <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<ul>
+<li>feat: use window menu bar with switch and hover rows</li>
+</ul>]]></description>
+      <enclosure url="https://github.com/jaywcjlove/dock-lift/releases/download/v1.1.0/DockLift_v1.1.0.zip" length="3127467" type="application/octet-stream" sparkle:edSignature="h0eqf2j/BRRURhLcl3bfBxmAh+4j/GnTV/Kh+Yy7cPbPyWXiydWGnkP8jtGo03s/7Hhn53YAJ+l07sNymyMtDg=="/>
+      <sparkle:deltas>
+        <enclosure url="https://github.com/jaywcjlove/dock-lift/releases/download/v1.1.0/DockLift3-2.delta" sparkle:deltaFrom="2" length="118246" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="975840" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="sXK3jPtzYbJRzO5XFpKdzWRhE9wJ1c6MQRnL/IwbQjTANJW7v8Yrx4j/DanjUKz4K3ZLoW5mOLM9EThz6E/PCg=="/>
+      </sparkle:deltas>
+    </item>
+    <item>
       <title>1.0</title>
       <pubDate>Fri, 17 Jul 2026 10:37:15 +0800</pubDate>
       <link>https://github.com/jaywcjlove/dock-lift</link>
