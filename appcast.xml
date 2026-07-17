@@ -6,6 +6,22 @@
     <description>DockLift release feed</description>
     <language>en</language>
     <item>
+      <title>1.2</title>
+      <pubDate>Fri, 17 Jul 2026 23:57:42 +0800</pubDate>
+      <link>https://github.com/jaywcjlove/dock-lift</link>
+      <sparkle:version>4</sparkle:version>
+      <sparkle:shortVersionString>1.2</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<ul>
+<li>fix: point Sparkle and docs links to dock-lift repo</li>
+</ul>]]></description>
+      <enclosure url="https://github.com/jaywcjlove/dock-lift/releases/download/v1.2.0/DockLift_v1.2.0.zip" length="3127443" type="application/octet-stream" sparkle:edSignature="u2Uyck+4qv3U/SPHNAX/7LzZ6tINyCVUK3P2/ZMQ/a02iC9dqJUCIFDg7iqypJ1wDMcDg0dhlbH/9GD8p+5QDg=="/>
+      <sparkle:deltas>
+        <enclosure url="https://github.com/jaywcjlove/dock-lift/releases/download/v1.2.0/DockLift4-3.delta" sparkle:deltaFrom="3" length="13006" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="975840" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="xzJUxS6HaoKVh+4yGQZZI1/ZyEmY9JkGSbZkTiWkY3E2KzTh4rtx87h8UDziEpR90ZF9uZR/ZmclmBd+M6mHCw=="/>
+        <enclosure url="https://github.com/jaywcjlove/dock-lift/releases/download/v1.2.0/DockLift4-2.delta" sparkle:deltaFrom="2" length="118014" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="975840" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="Qhajr6wk5kqfdQ8Qc3nsoheiADcx0Zv0Uod/zkGzTfpzxUS/E4ZDltDXphPaXaI69tmjpLmBCm5xYw4Oqv/IAQ=="/>
+      </sparkle:deltas>
+    </item>
+    <item>
       <title>1.1</title>
       <pubDate>Fri, 17 Jul 2026 23:39:09 +0800</pubDate>
       <link>https://github.com/jaywcjlove/dock-lift</link>
