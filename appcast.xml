@@ -2,7 +2,7 @@
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
   <channel>
     <title>DockLift</title>
-    <link>https://github.com/jaywcjlove/docklift</link>
+    <link>https://github.com/jaywcjlove/dock-lift</link>
     <description>DockLift release feed</description>
     <language>en</language>
     <item>
