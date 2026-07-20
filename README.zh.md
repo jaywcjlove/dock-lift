@@ -35,6 +35,7 @@ $ brew install --cask jaywcjlove/tap/dock-lift
 ### 功能亮点
 
 - 把窗口带到你点击 Dock 的那块屏幕
+- 按住 Shift 点击 Dock 图标，可把该应用其它屏幕上的窗口移动到当前屏幕
 - 应用已在其它屏幕打开时同样有效
 - 可找回最小化窗口
 - 菜单栏一键开关
@@ -46,6 +47,7 @@ $ brew install --cask jaywcjlove/tap/dock-lift
 2. 系统询问时，允许辅助功能权限（用于移动窗口）。
 3. 保持 DockLift 开启。
 4. 在 Dock 点击应用 — 若窗口在其它屏幕，应出现在你当前使用的屏幕上。
+5. 按住 Shift 再点击 Dock 图标，可把该应用在其它屏幕上的窗口移到当前屏幕。
 
 
 <!--idoc:config:

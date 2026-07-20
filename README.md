@@ -35,6 +35,7 @@ Using a Mac with more than one display, you may click an app in the Dock only to
 ### Features
 
 - Bring windows to the screen where you clicked the Dock
+- Hold Shift while clicking a Dock icon to move that app’s windows from other displays to the current screen
 - Works when the app is already open on another display
 - Restores minimized windows
 - Simple menu bar on/off control
@@ -46,5 +47,6 @@ Using a Mac with more than one display, you may click an app in the Dock only to
 2. Allow Accessibility when macOS asks (needed to move windows).
 3. Keep DockLift enabled.
 4. Click an app in the Dock — if its window is on another screen, it should appear on the screen you’re using.
+5. Hold Shift while clicking a Dock icon to bring that app’s windows from other displays onto the current screen.
 
 <!--version: v1.0.0-->
