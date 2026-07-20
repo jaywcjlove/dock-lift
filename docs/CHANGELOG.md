@@ -10,4 +10,12 @@ Changelog
   <img alt="DockLift AppStore" src="https://jaywcjlove.github.io/sb/download/macos.svg" height="51">
 </a>
 
+## [v1.2.0](https://github.com/jaywcjlove/dock-lift/releases/tag/v1.2.0)
+
+1. fix: point Sparkle and docs links to dock-lift repo
+
+## [v1.1.0](https://github.com/jaywcjlove/dock-lift/releases/tag/v1.1.0)
+
+1. feat: use window menu bar with switch and hover rows
+
 ## [v1.0.0](https://github.com/jaywcjlove/dock-lift/releases/tag/v1.0.0)

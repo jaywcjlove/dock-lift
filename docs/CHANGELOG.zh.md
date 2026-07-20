@@ -10,4 +10,12 @@
   <img alt="DockLift AppStore" src="https://jaywcjlove.github.io/sb/download/macos.svg" height="51">
 </a>
 
+## [v1.2.0](https://github.com/jaywcjlove/dock-lift/releases/tag/v1.2.0)
+
+1. fix: 将 Sparkle 及文档链接指向 dock-lift 仓库
+
+## [v1.1.0](https://github.com/jaywcjlove/dock-lift/releases/tag/v1.1.0)
+
+1. feat: 采用带切换控件与悬停高亮行的窗口菜单栏
+
 ## [v1.0.0](https://github.com/jaywcjlove/dock-lift/releases/tag/v1.0.0)
