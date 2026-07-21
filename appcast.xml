@@ -6,6 +6,22 @@
     <description>DockLift release feed</description>
     <language>en</language>
     <item>
+      <title>1.3</title>
+      <pubDate>Tue, 21 Jul 2026 23:38:18 +0800</pubDate>
+      <link>https://github.com/jaywcjlove/dock-lift</link>
+      <sparkle:version>6</sparkle:version>
+      <sparkle:shortVersionString>1.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<ul>
+<li>feat: add de/fr/it/ja/ko/ru language.</li>
+<li>refactor: drive Accessibility status only through PermissionFlow.</li>
+<li>fix: correct Russian format placeholders in Localizable.xcstrings.</li>
+<li>fix: restore Dock click lifts after Accessibility grant.</li>
+</ul>
+]]></description>
+      <enclosure url="https://github.com/jaywcjlove/dock-lift/releases/download/v1.3.0/DockLift_v1.3.0.zip" length="3154434" type="application/octet-stream" sparkle:edSignature="uZYz7YGr3QQGrZ/hEZS76hPLa+ybsb3E/yavm02C2E6VUuwMG3oMNcPTRUXQN8Rn8q5BS6a4uu9c2pUu7eeKDw=="/>
+    </item>
+    <item>
       <title>1.2</title>
       <pubDate>Fri, 17 Jul 2026 23:57:42 +0800</pubDate>
       <link>https://github.com/jaywcjlove/dock-lift</link>
