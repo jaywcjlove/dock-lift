@@ -97,10 +97,10 @@ final class AppViewModel: ObservableObject {
 
     @Published private(set) var privateSpaceAPIAvailable: Bool = SpaceMover.isPrivateSpaceAPIAvailable
 
-    /// Convenience: Accessibility granted via AX + PermissionFlow status store.
+    /// Convenience: Accessibility granted via real AX trust (required for window
+    /// control and global event monitors). PermissionFlow UI state alone is not enough.
     var hasAccessibilityPermission: Bool {
-        accessibility.isTrusted || AXIsProcessTrusted()
-            || accessibility.statusStore.state(for: .accessibility) == .granted
+        AXIsProcessTrusted() || accessibility.isTrusted
     }
 
     var statusSymbolName: String {
@@ -201,12 +201,20 @@ final class AppViewModel: ObservableObject {
     // MARK: - Monitoring
 
     func syncMonitoring() {
+        let wasTrusted = accessibility.isTrusted
         accessibility.refresh()
         privateSpaceAPIAvailable = SpaceMover.isPrivateSpaceAPIAvailable
         objectWillChange.send()
 
-        if isEnabled && hasAccessibilityPermission {
-            monitor.start()
+        let trusted = AXIsProcessTrusted()
+        if isEnabled && trusted {
+            // After Accessibility is newly granted, global monitors must be
+            // re-registered — ones installed while untrusted often stay nil/dead.
+            if !wasTrusted && trusted {
+                monitor.restart()
+            } else {
+                monitor.start()
+            }
         } else {
             monitor.stop()
         }

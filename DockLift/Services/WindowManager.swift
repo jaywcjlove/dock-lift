@@ -383,37 +383,65 @@ final class WindowManager: @unchecked Sendable {
             target.preferMoveToCurrentSpace
             && (window.isLikelyOnOtherSpace || (!window.isOnScreen && !window.isMinimized))
 
-        var issuedPrivateMove = false
+        // Private Space APIs often resolve via dlsym but silently no-op for foreign
+        // windows on recent macOS. Always verify on-screen state afterward.
         if needsSpaceMove, window.cgWindowID != 0 {
-            issuedPrivateMove = SpaceMover.moveWindowToCurrentSpace(windowID: window.cgWindowID)
-            movedAcrossSpace = issuedPrivateMove
+            _ = SpaceMover.moveWindowToCurrentSpace(windowID: window.cgWindowID)
+            usleep(40_000)
+            if SpaceMover.isWindowOnScreen(windowID: window.cgWindowID, pid: app.processIdentifier) {
+                movedAcrossSpace = true
+            }
         }
 
         if window.isMinimized {
             try setMinimized(window, false)
-        } else if needsSpaceMove,
-                  target.useMinimizeFallback,
-                  (!issuedPrivateMove || !SpaceMover.isPrivateSpaceAPIAvailable)
-        {
-            // Public fallback: minimize → deminimize often restores onto the *current* Space.
-            try setMinimized(window, true)
-            usleep(40_000)
-            try setMinimized(window, false)
-            movedAcrossSpace = true
+            // Deminimizing can surface a window onto the current Space.
+            if needsSpaceMove {
+                movedAcrossSpace = true
+            }
+        } else if needsSpaceMove, target.useMinimizeFallback {
+            let stillOffSpace =
+                window.cgWindowID == 0
+                || !SpaceMover.isWindowOnScreen(
+                    windowID: window.cgWindowID,
+                    pid: app.processIdentifier
+                )
+            // Run the public fallback whenever the private path did not actually
+            // bring the window on-screen (including “API available but no-op”).
+            if stillOffSpace {
+                try setMinimized(window, true)
+                usleep(50_000)
+                try setMinimized(window, false)
+                usleep(40_000)
+                movedAcrossSpace = true
+            }
         }
 
         // Multi-display: put the window on the screen where the Dock was clicked.
         // Do this *before* raise so the window appears on the correct display.
+        // Re-probe live geometry after Space / unminimize work — the snapshot
+        // taken at listing time is often stale for off-Space windows.
         if target.moveToDockScreen,
            let displayID = target.screenDisplayID,
            let screen = ScreenCoordinates.screen(displayID: displayID)
         {
-            let alreadyThere = window.displayID == displayID
+            let liveDisplay: CGDirectDisplayID? = {
+                if let live = SpaceMover.cgBounds(for: window.cgWindowID),
+                   let host = ScreenCoordinates.screen(
+                    hostingAXTopLeft: live.origin,
+                    size: live.size
+                   )
+                {
+                    return ScreenCoordinates.displayID(of: host)
+                }
+                return window.displayID
+            }()
+            let alreadyThere = liveDisplay == displayID
             if !alreadyThere {
                 movedToScreen = (try? move(window, to: screen, cascadeIndex: cascadeIndex)) ?? false
                 // Retry once after a short yield — some apps ignore the first set.
                 if !movedToScreen {
-                    usleep(30_000)
+                    usleep(40_000)
                     movedToScreen = (try? move(window, to: screen, cascadeIndex: cascadeIndex)) ?? false
                 }
             } else if cascadeIndex > 0 {

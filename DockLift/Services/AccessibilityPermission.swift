@@ -34,10 +34,14 @@ final class AccessibilityPermission: ObservableObject {
     }
 
     /// Re-read Accessibility trust without prompting.
+    ///
+    /// Only `AXIsProcessTrusted()` enables real window control and global event
+    /// monitors. PermissionFlow’s status store is refreshed for UI, but must not
+    /// report “trusted” on its own — that previously started monitors that never
+    /// received events after the user granted access.
     func refresh() {
         statusStore.refresh(.accessibility)
         let trusted = AXIsProcessTrusted()
-            || statusStore.state(for: .accessibility) == .granted
         guard trusted != isTrusted else { return }
         isTrusted = trusted
     }

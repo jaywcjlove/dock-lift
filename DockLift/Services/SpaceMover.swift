@@ -116,8 +116,11 @@ enum SpaceMover {
 
     // MARK: Move
 
-    /// Attempts to place `windowID` on the active Space.
-    /// - Returns: `true` if a private API call was issued (not a guarantee of success).
+    /// Attempts to place `windowID` on the active Space via private SkyLight APIs.
+    ///
+    /// - Returns: `true` only when a private call was **issued**. On modern macOS the
+    ///   call may silently no-op for windows this process does not own — callers must
+    ///   verify with ``isWindowOnScreen(windowID:pid:)`` and fall back publicly.
     @discardableResult
     static func moveWindowToCurrentSpace(windowID: CGWindowID) -> Bool {
         guard windowID != 0,
@@ -132,19 +135,29 @@ enum SpaceMover {
         guard space != 0 else { return false }
 
         let windows = [NSNumber(value: windowID)] as CFArray
+        var issued = false
 
+        // Prefer the managed-space move; also try add-to-spaces (some OS builds
+        // implement only one of the two entry points usefully).
         if let moveWindowsToManagedSpace {
             moveWindowsToManagedSpace(cid, windows, space)
-            return true
+            issued = true
         }
 
         if let addWindowsToSpaces {
             let spaces = [NSNumber(value: space)] as CFArray
             addWindowsToSpaces(cid, windows, spaces)
-            return true
+            issued = true
         }
 
-        return false
+        return issued
+    }
+
+    /// Whether `windowID` is currently listed as on-screen (any connected display /
+    /// current Spaces). Optionally scoped to `pid`.
+    static func isWindowOnScreen(windowID: CGWindowID, pid: pid_t? = nil) -> Bool {
+        guard windowID != 0 else { return false }
+        return onScreenWindowIDs(for: pid).contains(windowID)
     }
 
     // MARK: On-screen probe (public)

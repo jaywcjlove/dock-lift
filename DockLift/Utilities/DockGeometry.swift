@@ -16,8 +16,9 @@ enum DockOrientation: String {
 
 /// Geometry helpers used to decide whether a pointer event likely hit the Dock.
 enum DockGeometry {
-    /// Thickness (points) of the strip treated as Dock territory, including magnification slack.
-    private static let dockThickness: CGFloat = 80
+    /// Thickness (points) of the strip treated as Dock territory, including
+    /// magnification slack and taller Dock chrome on recent macOS releases.
+    private static let dockThickness: CGFloat = 120
 
     static var orientation: DockOrientation {
         let raw = UserDefaults(suiteName: "com.apple.dock")?
@@ -44,9 +45,16 @@ enum DockGeometry {
     ///
     /// On multi-monitor setups the Dock lives on one screen at a time; using the
     /// click location is the reliable way to know *which* Dock was used.
+    /// Falls back to checking every screen’s dock band so clicks near shared
+    /// edges (or slightly off the primary hit-test screen) still count.
     static func screenHostingDock(at point: CGPoint) -> NSScreen? {
-        guard let screen = screen(for: point) else { return nil }
-        return dockBand(on: screen).contains(point) ? screen : nil
+        if let screen = screen(for: point), dockBand(on: screen).contains(point) {
+            return screen
+        }
+        for screen in NSScreen.screens where dockBand(on: screen).contains(point) {
+            return screen
+        }
+        return nil
     }
 
     /// Screen currently showing the Dock (best effort from pointer / main).

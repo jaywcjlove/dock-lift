@@ -9,6 +9,12 @@
 //  when the Dock icon is clicked. We therefore also handle a delayed re-click
 //  of the current frontmost app after a Dock-region mouse down.
 //
+//  Event ordering note (critical on recent macOS):
+//  `NSEvent.addGlobalMonitorForEvents` delivers copies *after* the event has
+//  already been handled by the Dock. App activation therefore often races
+//  ahead of our click recorder. Lifts are deferred briefly so Dock-click
+//  metadata (display + ⇧) is available before we act.
+//
 
 import AppKit
 import Combine
@@ -29,6 +35,64 @@ struct LiftPolicy: Sendable {
     var ignoredBundleIdentifiers: Set<String>
 }
 
+/// Thread-safe snapshot of the most recent Dock-strip interaction.
+/// Updated from global event-monitor callbacks (may run off the main actor).
+private final class DockClickState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var clickedAt: Date?
+    private var displayID: CGDirectDisplayID?
+    private var shiftHeld = false
+    private var generation: UInt64 = 0
+
+    struct Snapshot: Sendable {
+        var clickedAt: Date?
+        var displayID: CGDirectDisplayID?
+        var shiftHeld: Bool
+        var generation: UInt64
+    }
+
+    /// Begin a new Dock press (mouse down). Resets shift unless this down has ⇧.
+    func beginClick(displayID: CGDirectDisplayID?, shiftHeld: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        clickedAt = Date()
+        self.displayID = displayID
+        self.shiftHeld = shiftHeld
+        generation &+= 1
+    }
+
+    /// Refresh an in-flight Dock press (mouse up / drag within strip).
+    func refreshClick(displayID: CGDirectDisplayID?, shiftHeld: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        clickedAt = Date()
+        if let displayID {
+            self.displayID = displayID
+        }
+        if shiftHeld {
+            self.shiftHeld = true
+        }
+    }
+
+    func snapshot() -> Snapshot {
+        lock.lock()
+        defer { lock.unlock() }
+        return Snapshot(
+            clickedAt: clickedAt,
+            displayID: displayID,
+            shiftHeld: shiftHeld,
+            generation: generation
+        )
+    }
+
+    func isRecent(within interval: TimeInterval = 1.0) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let clickedAt else { return false }
+        return Date().timeIntervalSince(clickedAt) < interval
+    }
+}
+
 /// Listens for `NSWorkspace.didActivateApplicationNotification` and Dock clicks.
 @MainActor
 final class DockActivationMonitor: ObservableObject {
@@ -41,16 +105,13 @@ final class DockActivationMonitor: ObservableObject {
     private var mouseDownMonitor: Any?
     private var mouseUpMonitor: Any?
 
-    /// Last time a primary click was observed inside the Dock strip.
-    private var lastDockClickAt: Date?
-    /// Display id of the screen whose Dock received the last click.
-    private var lastDockClickDisplayID: CGDirectDisplayID?
-    /// Whether ⇧ was held during the last Dock click (lift all windows).
-    private var lastDockClickShiftHeld = false
+    private let dockClick = DockClickState()
+
     /// Debounce repeated handling for the same pid.
     private var lastHandled: (pid: pid_t, at: Date)?
-    /// Serial generation so delayed dock re-click tasks can be cancelled logically.
+    /// Serial generation so delayed tasks can be cancelled logically.
     private var dockClickGeneration: UInt64 = 0
+    private var activationGeneration: UInt64 = 0
 
     /// Supplies the current policy (read from settings by the view model).
     var policyProvider: (() -> LiftPolicy)?
@@ -62,9 +123,37 @@ final class DockActivationMonitor: ObservableObject {
     // MARK: - Lifecycle
 
     func start() {
-        guard !isRunning else { return }
+        if isRunning {
+            // Re-install monitors if they failed (e.g. registered before AX trust).
+            ensureEventMonitorsInstalled()
+            return
+        }
         isRunning = true
+        installActivationObserver()
+        ensureEventMonitorsInstalled()
+        lastEventDescription = String(localized: "Monitoring Dock activations")
+        log.info("DockActivationMonitor started")
+    }
 
+    /// Tear down and start again — call after Accessibility is newly granted.
+    func restart() {
+        stop()
+        start()
+    }
+
+    func stop() {
+        if let activationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+            self.activationObserver = nil
+        }
+        removeEventMonitors()
+        isRunning = false
+        lastEventDescription = String(localized: "Monitoring paused")
+        log.info("DockActivationMonitor stopped")
+    }
+
+    private func installActivationObserver() {
+        guard activationObserver == nil else { return }
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
             object: nil,
@@ -74,32 +163,43 @@ final class DockActivationMonitor: ObservableObject {
                 self?.handleActivation(notification)
             }
         }
-
-        // Global monitors only — local monitors break Settings hit-testing.
-        mouseDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
-            let location = NSEvent.mouseLocation
-            let shift = event.modifierFlags.contains(.shift)
-            Task { @MainActor [weak self] in
-                self?.recordPotentialDockClick(at: location, shiftHeld: shift)
-            }
-        }
-        mouseUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] event in
-            let location = NSEvent.mouseLocation
-            let shift = event.modifierFlags.contains(.shift)
-            Task { @MainActor [weak self] in
-                self?.recordPotentialDockMouseUp(at: location, shiftHeld: shift)
-            }
-        }
-
-        lastEventDescription = String(localized: "Monitoring Dock activations")
-        log.info("DockActivationMonitor started")
     }
 
-    func stop() {
-        if let activationObserver {
-            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
-            self.activationObserver = nil
+    /// Global monitors only — local monitors break Settings hit-testing.
+    /// Must be installed **after** `AXIsProcessTrusted()` is true or they may
+    /// return `nil` and never receive Dock clicks.
+    private func ensureEventMonitorsInstalled() {
+        if mouseDownMonitor == nil {
+            mouseDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
+                guard let self else { return }
+                let location = NSEvent.mouseLocation
+                let shift = event.modifierFlags.contains(.shift)
+                // Record *synchronously* so a later main-queue activation task
+                // (scheduled with a short delay) can see this click.
+                self.recordPotentialDockClickSync(at: location, shiftHeld: shift)
+                Task { @MainActor [weak self] in
+                    self?.scheduleFrontmostReclickIfNeeded()
+                }
+            }
+            if mouseDownMonitor == nil {
+                log.error("Failed to install global mouse-down monitor (Accessibility?)")
+            }
         }
+
+        if mouseUpMonitor == nil {
+            mouseUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] event in
+                guard let self else { return }
+                let location = NSEvent.mouseLocation
+                let shift = event.modifierFlags.contains(.shift)
+                self.recordPotentialDockMouseUpSync(at: location, shiftHeld: shift)
+            }
+            if mouseUpMonitor == nil {
+                log.error("Failed to install global mouse-up monitor (Accessibility?)")
+            }
+        }
+    }
+
+    private func removeEventMonitors() {
         if let mouseDownMonitor {
             NSEvent.removeMonitor(mouseDownMonitor)
             self.mouseDownMonitor = nil
@@ -108,58 +208,48 @@ final class DockActivationMonitor: ObservableObject {
             NSEvent.removeMonitor(mouseUpMonitor)
             self.mouseUpMonitor = nil
         }
-        isRunning = false
-        lastEventDescription = String(localized: "Monitoring paused")
-        log.info("DockActivationMonitor stopped")
     }
 
-    // MARK: - Click tracking
+    // MARK: - Click tracking (may run off main actor)
 
-    private func recordPotentialDockClick(at location: CGPoint, shiftHeld: Bool) {
+    /// Synchronous Dock hit-test + state update (safe from monitor callbacks).
+    nonisolated private func recordPotentialDockClickSync(at location: CGPoint, shiftHeld: Bool) {
         guard let dockScreen = DockGeometry.screenHostingDock(at: location) else { return }
+        let displayID = ScreenCoordinates.displayID(of: dockScreen)
+        dockClick.beginClick(displayID: displayID, shiftHeld: shiftHeld)
+        log.debug("Dock click on display \(displayID, privacy: .public) shift=\(shiftHeld, privacy: .public)")
+    }
 
-        lastDockClickAt = Date()
-        lastDockClickDisplayID = ScreenCoordinates.displayID(of: dockScreen)
-        lastDockClickShiftHeld = shiftHeld
+    nonisolated private func recordPotentialDockMouseUpSync(at location: CGPoint, shiftHeld: Bool) {
+        // If the press started on the Dock, keep the dock-click timestamp fresh
+        // through mouse-up (activation often lands between down and up).
+        guard dockClick.isRecent(within: 0.9) else { return }
+        if DockGeometry.screenHostingDock(at: location) != nil || DockGeometry.contains(location) {
+            let displayID = DockGeometry.screenHostingDock(at: location)
+                .map { ScreenCoordinates.displayID(of: $0) }
+            dockClick.refreshClick(displayID: displayID, shiftHeld: shiftHeld)
+        }
+    }
+
+    /// Already-frontmost apps do not emit didActivateApplication when their
+    /// Dock icon is clicked. Schedule a follow-up after the click settles.
+    private func scheduleFrontmostReclickIfNeeded() {
+        guard dockClick.isRecent(within: 0.9) else { return }
         dockClickGeneration &+= 1
         let generation = dockClickGeneration
 
-        log.debug(
-            "Dock click on display \(self.lastDockClickDisplayID ?? 0, privacy: .public) shift=\(shiftHeld, privacy: .public)"
-        )
-
-        // Already-frontmost apps do not emit didActivateApplication when their
-        // Dock icon is clicked. Schedule a follow-up after the click settles.
         Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(220))
+            try? await Task.sleep(for: .milliseconds(240))
             guard let self, self.isRunning, self.dockClickGeneration == generation else { return }
             self.handleDockReclickOfFrontmostApp()
         }
     }
 
-    private func recordPotentialDockMouseUp(at location: CGPoint, shiftHeld: Bool) {
-        // If the press started on the Dock, keep the dock-click timestamp fresh
-        // through mouse-up (activation often lands between down and up).
-        if let lastDockClickAt, Date().timeIntervalSince(lastDockClickAt) < 0.9 {
-            if DockGeometry.screenHostingDock(at: location) != nil
-                || DockGeometry.contains(location)
-            {
-                self.lastDockClickAt = Date()
-                // Prefer shift flag from the up event if still held.
-                if shiftHeld {
-                    lastDockClickShiftHeld = true
-                }
-                if let screen = DockGeometry.screenHostingDock(at: location) {
-                    lastDockClickDisplayID = ScreenCoordinates.displayID(of: screen)
-                }
-            }
-        }
-    }
-
     /// Whether the last Dock interaction was a ⇧-click (lift all windows).
     private func isShiftDockClick() -> Bool {
-        guard lastDockClickShiftHeld else { return false }
-        guard let lastDockClickAt, Date().timeIntervalSince(lastDockClickAt) < 0.9 else {
+        let snap = dockClick.snapshot()
+        guard snap.shiftHeld else { return false }
+        guard let clickedAt = snap.clickedAt, Date().timeIntervalSince(clickedAt) < 1.0 else {
             return false
         }
         return true
@@ -167,7 +257,7 @@ final class DockActivationMonitor: ObservableObject {
 
     /// Heuristic: activation soon after a Dock-region click, or pointer still over Dock.
     private func isLikelyDockTriggered() -> Bool {
-        if let lastDockClickAt, Date().timeIntervalSince(lastDockClickAt) < 0.9 {
+        if dockClick.isRecent(within: 1.0) {
             return true
         }
         return DockGeometry.screenHostingDock(at: NSEvent.mouseLocation) != nil
@@ -175,11 +265,12 @@ final class DockActivationMonitor: ObservableObject {
 
     /// Display that should receive the window after a Dock activation.
     private func targetDisplayID() -> CGDirectDisplayID? {
-        if let lastDockClickAt,
-           Date().timeIntervalSince(lastDockClickAt) < 0.9,
-           let lastDockClickDisplayID
+        let snap = dockClick.snapshot()
+        if let clickedAt = snap.clickedAt,
+           Date().timeIntervalSince(clickedAt) < 1.0,
+           let displayID = snap.displayID
         {
-            return lastDockClickDisplayID
+            return displayID
         }
         if let dockScreen = DockGeometry.screenHostingDock(at: NSEvent.mouseLocation) {
             return ScreenCoordinates.displayID(of: dockScreen)
@@ -204,7 +295,7 @@ final class DockActivationMonitor: ObservableObject {
         guard policy.moveToDockScreen || policy.preferMoveToCurrentSpace else { return }
 
         // Still consider this a recent Dock interaction.
-        guard let lastDockClickAt, Date().timeIntervalSince(lastDockClickAt) < 0.9 else { return }
+        guard dockClick.isRecent(within: 1.0) else { return }
 
         guard let app = NSWorkspace.shared.frontmostApplication else { return }
 
@@ -225,7 +316,7 @@ final class DockActivationMonitor: ObservableObject {
         // If activation handling already lifted this app, skip.
         if let lastHandled,
            lastHandled.pid == app.processIdentifier,
-           Date().timeIntervalSince(lastHandled.at) < 0.5
+           Date().timeIntervalSince(lastHandled.at) < 0.55
         {
             return
         }
@@ -286,9 +377,16 @@ final class DockActivationMonitor: ObservableObject {
 
         // Own app activation via Dock — move Settings to the Dock's screen.
         if app.processIdentifier == ProcessInfo.processInfo.processIdentifier {
-            if isLikelyDockTriggered() {
-                OpenSettingsAction.bringOwnWindowsToDockScreen()
-                lastEventDescription = String(localized: "Brought Settings to Dock screen")
+            // Defer so dock-click state from the global monitor can settle.
+            activationGeneration &+= 1
+            let generation = activationGeneration
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .milliseconds(90))
+                guard let self, self.isRunning, self.activationGeneration == generation else { return }
+                if self.isLikelyDockTriggered() {
+                    OpenSettingsAction.bringOwnWindowsToDockScreen()
+                    self.lastEventDescription = String(localized: "Brought Settings to Dock screen")
+                }
             }
             return
         }
@@ -303,24 +401,45 @@ final class DockActivationMonitor: ObservableObject {
 
         if app.activationPolicy != .regular { return }
 
-        if policy.onlyWhenDockClick && !isLikelyDockTriggered() {
-            let name = app.localizedName ?? String(localized: "App")
-            lastEventDescription = String(
-                format: String(localized: "Activation of %@ (not Dock)"),
-                name
-            )
-            return
-        }
+        // Global monitors fire *after* Dock handles the click, so activation
+        // often arrives before our dock-click recorder. Defer the lift briefly
+        // so display id + ⇧ are available, then re-check the dock heuristic.
+        activationGeneration &+= 1
+        let generation = activationGeneration
+        let pid = app.processIdentifier
 
-        if let lastHandled,
-           lastHandled.pid == app.processIdentifier,
-           Date().timeIntervalSince(lastHandled.at) < 0.35
-        {
-            return
-        }
-        lastHandled = (app.processIdentifier, Date())
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(100))
+            guard let self, self.isRunning, self.activationGeneration == generation else { return }
 
-        lift(app: app, policy: policy, liftAllWindows: isShiftDockClick())
+            // App may have changed again; re-resolve by pid.
+            guard let live = NSRunningApplication(processIdentifier: pid), !live.isTerminated else {
+                return
+            }
+
+            let policy = self.currentPolicy()
+            guard policy.isEnabled else { return }
+
+            if policy.onlyWhenDockClick && !self.isLikelyDockTriggered() {
+                let name = live.localizedName ?? String(localized: "App")
+                self.lastEventDescription = String(
+                    format: String(localized: "Activation of %@ (not Dock)"),
+                    name
+                )
+                return
+            }
+
+            if let lastHandled,
+               lastHandled.pid == live.processIdentifier,
+               Date().timeIntervalSince(lastHandled.at) < 0.35
+            {
+                return
+            }
+            self.lastHandled = (live.processIdentifier, Date())
+
+            let shift = self.isShiftDockClick()
+            self.lift(app: live, policy: policy, liftAllWindows: shift)
+        }
     }
 
     private func lift(
