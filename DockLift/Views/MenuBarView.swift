@@ -2,16 +2,19 @@
 //  MenuBarView.swift
 //  DockLift
 //
-//  MenuBarExtra content (`.window` style) so Enable can use a real switch.
-//  Rows use menu-like hover highlighting (`.menu` style cannot draw switches).
-//
 
-import AppKit
+import PermissionFlow
+import PermissionFlowStatusStore
 import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject private var viewModel: AppViewModel
+    @EnvironmentObject private var permissionStatusStore: PermissionFlowStatusStore
     @ObservedObject private var updater = SparkleUpdater.shared
+
+    private var isGranted: Bool {
+        permissionStatusStore.state(for: .accessibility) == .granted
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -24,7 +27,7 @@ struct MenuBarView: View {
                 .toggleStyle(.switch)
                 .labelsHidden()
                 .controlSize(.small)
-                .disabled(!viewModel.hasAccessibilityPermission)
+                .disabled(!isGranted)
                 .accessibilityLabel(Text("Enable DockLift"))
             }
             .padding(.leading, 12)
@@ -34,18 +37,12 @@ struct MenuBarView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 6) {
-                if viewModel.hasAccessibilityPermission {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.shield").foregroundStyle(.green)
-                        Text("Accessibility: Granted")
-                    }
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 12)
-                } else {
-                    menuRowButton("Grant Accessibility…", systemImage: "hand.raised") {
-                        viewModel.requestAccessibility()
-                    }
-                }
+                PermissionFlowButton(
+                    pane: .accessibility,
+                    suggestedAppURLs: [Bundle.main.bundleURL]
+                )
+                .buttonStyle(.plain)
+                .padding(.horizontal, 8)
 
                 Text(viewModel.monitor.isRunning ? "Status: Monitoring" : "Status: Paused")
                     .foregroundStyle(.secondary)
@@ -66,7 +63,7 @@ struct MenuBarView: View {
 
             VStack(spacing: 0) {
                 menuRowButton("Settings…", systemImage: "gearshape") {
-                    viewModel.openSettingsOrPermissionGate()
+                    viewModel.openSettingsOrPermissionGate(accessibilityGranted: isGranted)
                 }
                 .keyboardShortcut(",", modifiers: .command)
 
@@ -104,7 +101,6 @@ struct MenuBarView: View {
 
 // MARK: - Menu-like hover highlight
 
-/// Approximates `NSMenuItem` selection: rounded fill + inverted label on hover.
 private struct MenuBarRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         MenuBarRowButton(configuration: configuration)

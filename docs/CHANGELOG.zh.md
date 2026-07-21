@@ -10,6 +10,10 @@
   <img alt="DockLift AppStore" src="https://jaywcjlove.github.io/sb/download/macos.svg" height="51">
 </a>
 
+## [v1.3.0](https://github.com/jaywcjlove/dock-lift/releases/tag/v1.3.0)
+
+1. fix: restore Dock click lifts after Accessibility grant
+
 ## [v1.2.0](https://github.com/jaywcjlove/dock-lift/releases/tag/v1.2.0)
 
 1. fix: 将 Sparkle 及文档链接指向 dock-lift 仓库

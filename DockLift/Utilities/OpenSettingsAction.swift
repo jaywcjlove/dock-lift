@@ -7,7 +7,7 @@
 //
 
 import AppKit
-import ApplicationServices
+import PermissionFlow
 import SwiftUI
 
 extension Notification.Name {
@@ -21,10 +21,15 @@ enum OpenSettingsAction {
     static let bootstrapWindowID = "docklift.settings.bootstrap"
     static let permissionGateWindowID = "docklift.permission.gate"
 
+    /// Live Accessibility check (PermissionFlow built-in provider).
+    static func isAccessibilityGranted() -> Bool {
+        AccessibilityPermissionStatusProvider().authorizationState() == .granted
+    }
+
     /// Public entry: Settings if trusted, otherwise permission gate.
     static func request() {
         DispatchQueue.main.async {
-            if AXIsProcessTrusted() {
+            if isAccessibilityGranted() {
                 requestSettings(force: true)
             } else {
                 requestPermissionGate()
@@ -35,7 +40,7 @@ enum OpenSettingsAction {
     /// Open Settings scene (caller must ensure Accessibility is granted, or pass force after check).
     static func requestSettings(force: Bool = false) {
         DispatchQueue.main.async {
-            if force || AXIsProcessTrusted() {
+            if force || isAccessibilityGranted() {
                 NotificationCenter.default.post(name: .dockLiftOpenSettings, object: nil)
             } else {
                 requestPermissionGate()
@@ -175,7 +180,6 @@ enum OpenSettingsAction {
 struct SettingsBootstrapView: View {
     @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
-    @EnvironmentObject private var viewModel: AppViewModel
 
     @State private var didAutoOpenThisSession = false
 
@@ -204,8 +208,7 @@ struct SettingsBootstrapView: View {
 
     @MainActor
     private func handleLaunchOrRequest() async {
-        viewModel.syncMonitoring()
-        if viewModel.hasAccessibilityPermission {
+        if OpenSettingsAction.isAccessibilityGranted() {
             await openSettingsFlow()
         } else {
             await openPermissionGateFlow()
@@ -225,8 +228,7 @@ struct SettingsBootstrapView: View {
     @MainActor
     private func openSettingsFlow() async {
         // Never open Settings without Accessibility.
-        viewModel.syncMonitoring()
-        guard viewModel.hasAccessibilityPermission else {
+        guard OpenSettingsAction.isAccessibilityGranted() else {
             await openPermissionGateFlow()
             return
         }

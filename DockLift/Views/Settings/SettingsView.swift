@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import PermissionFlowStatusStore
 
 enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
     case general
@@ -44,15 +45,19 @@ enum SettingsPane: String, CaseIterable, Identifiable, Hashable {
         case .advanced:
             return CGSize(width: 420, height: 540)
         case .about:
-            return CGSize(width: 420, height: 260)
+            return CGSize(width: 420, height: 360)
         }
     }
 }
 
 struct SettingsView: View {
     @EnvironmentObject private var viewModel: AppViewModel
+    @EnvironmentObject private var permission: PermissionFlowStatusStore
     @State private var pane: SettingsPane = .general
 
+    private var isGranted: Bool {
+        permission.state(for: .accessibility) == .granted
+    }
     var body: some View {
         TabView(selection: $pane) {
             paneContainer(for: .general) {
@@ -77,6 +82,15 @@ struct SettingsView: View {
             height: pane.preferredSize.height
         )
         .animation(.snappy(duration: 0.22), value: pane)
+        .onAppear {
+            permission.refresh(.accessibility)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            permission.refresh(.accessibility)
+            if isGranted == false {
+                pane = .permissions
+            }
+        }
     }
 
     @ViewBuilder

@@ -2,32 +2,24 @@
 //  AppViewModel.swift
 //  DockLift
 //
-//  Central MVVM façade for menu bar UI, settings, and monitoring lifecycle.
+//  Settings + Dock monitor. Does not own Accessibility status.
 //
 
 import AppKit
-import ApplicationServices
 import Combine
 import Foundation
 import PermissionFlow
-import PermissionFlowStatusStore
 import ServiceManagement
 import SwiftUI
 
 @MainActor
 final class AppViewModel: ObservableObject {
-    // MARK: - Dependencies
-
-    let accessibility: AccessibilityPermission
     let monitor: DockActivationMonitor
-    private let windowManager: WindowManager
-
-    // MARK: - Published settings (mirrored to UserDefaults)
 
     @Published var isEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isEnabled, forKey: AppSettings.Key.isEnabled)
-            syncMonitoring()
+            refreshMonitor()
         }
     }
 
@@ -93,44 +85,13 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Status
-
     @Published private(set) var privateSpaceAPIAvailable: Bool = SpaceMover.isPrivateSpaceAPIAvailable
-
-    /// Convenience: Accessibility granted via real AX trust (required for window
-    /// control and global event monitors). PermissionFlow UI state alone is not enough.
-    var hasAccessibilityPermission: Bool {
-        AXIsProcessTrusted() || accessibility.isTrusted
-    }
-
-    var statusSymbolName: String {
-        if !hasAccessibilityPermission { return "exclamationmark.triangle.fill" }
-        return isEnabled ? "dock.rectangle" : "dock.rectangle"
-    }
-
-    var statusAccessibilityLabel: String {
-        if !hasAccessibilityPermission {
-            return String(localized: "DockLift — Accessibility required")
-        }
-        return isEnabled
-            ? String(localized: "DockLift — On")
-            : String(localized: "DockLift — Off")
-    }
 
     private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - Init
-
-    init(
-        accessibility: AccessibilityPermission? = nil,
-        monitor: DockActivationMonitor? = nil,
-        windowManager: WindowManager? = nil
-    ) {
+    init(monitor: DockActivationMonitor? = nil) {
         AppSettings.registerDefaults()
-
-        self.accessibility = accessibility ?? AccessibilityPermission()
         self.monitor = monitor ?? DockActivationMonitor()
-        self.windowManager = windowManager ?? .shared
 
         let defaults = UserDefaults.standard
         self.isEnabled = defaults.object(forKey: AppSettings.Key.isEnabled) as? Bool ?? true
@@ -164,27 +125,17 @@ final class AppViewModel: ObservableObject {
             return self.currentPolicy()
         }
 
-        // Re-sync when Accessibility trust flips.
-        self.accessibility.$isTrusted
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
-                self?.syncMonitoring()
-            }
-            .store(in: &cancellables)
-
         NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.syncMonitoring()
+                self?.refreshMonitor()
             }
             .store(in: &cancellables)
 
-        syncMonitoring()
+        privateSpaceAPIAvailable = SpaceMover.isPrivateSpaceAPIAvailable
         reconcileLaunchAtLoginStatus()
+        refreshMonitor()
     }
-
-    // MARK: - Policy
 
     func currentPolicy() -> LiftPolicy {
         LiftPolicy(
@@ -198,49 +149,30 @@ final class AppViewModel: ObservableObject {
         )
     }
 
-    // MARK: - Monitoring
-
-    func syncMonitoring() {
-        let wasTrusted = accessibility.isTrusted
-        accessibility.refresh()
+    /// Start/stop Dock monitoring from current enable flag + live Accessibility status.
+    func refreshMonitor() {
         privateSpaceAPIAvailable = SpaceMover.isPrivateSpaceAPIAvailable
-        objectWillChange.send()
-
-        let trusted = AXIsProcessTrusted()
-        if isEnabled && trusted {
-            // After Accessibility is newly granted, global monitors must be
-            // re-registered — ones installed while untrusted often stay nil/dead.
-            if !wasTrusted && trusted {
-                monitor.restart()
-            } else {
+        let granted = AccessibilityPermissionStatusProvider().authorizationState() == .granted
+        let shouldRun = isEnabled && granted
+        if shouldRun {
+            if monitor.isRunning {
                 monitor.start()
+            } else {
+                monitor.restart()
             }
         } else {
             monitor.stop()
         }
+        objectWillChange.send()
     }
 
-    func toggleEnabled() {
-        isEnabled.toggle()
-    }
-
-    /// Opens PermissionFlow Accessibility authorization UI.
-    func requestAccessibility() {
-        accessibility.requestAccess()
-        syncMonitoring()
-    }
-
-    /// Settings if authorized; otherwise the permission gate.
-    func openSettingsOrPermissionGate() {
-        syncMonitoring()
-        if hasAccessibilityPermission {
+    func openSettingsOrPermissionGate(accessibilityGranted: Bool) {
+        if accessibilityGranted {
             OpenSettingsAction.requestSettings(force: true)
         } else {
             OpenSettingsAction.requestPermissionGate()
         }
     }
-
-    // MARK: - Launch at login
 
     private func updateLaunchAtLogin() {
         do {
@@ -250,8 +182,7 @@ final class AppViewModel: ObservableObject {
                 try SMAppService.mainApp.unregister()
             }
         } catch {
-            let status = SMAppService.mainApp.status
-            let enabled = (status == .enabled)
+            let enabled = SMAppService.mainApp.status == .enabled
             if launchAtLogin != enabled {
                 launchAtLogin = enabled
             }
@@ -264,8 +195,6 @@ final class AppViewModel: ObservableObject {
             launchAtLogin = enabled
         }
     }
-
-    // MARK: - Ignore list helpers
 
     func addIgnoredBundleID(_ bundleID: String) {
         let trimmed = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)

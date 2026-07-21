@@ -9,6 +9,7 @@ import AppKit
 import ApplicationServices
 import CoreGraphics
 import Foundation
+import PermissionFlow
 
 /// Errors produced while inspecting or controlling windows via Accessibility.
 enum WindowManagerError: LocalizedError {
@@ -81,7 +82,7 @@ final class WindowManager: @unchecked Sendable {
     // MARK: - Trust
 
     var isAccessibilityTrusted: Bool {
-        AXIsProcessTrusted()
+        AccessibilityPermissionStatusProvider().authorizationState() == .granted
     }
 
     // MARK: - Listing

@@ -89,28 +89,6 @@
         }
       }
     },
-    "Check for Updates…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check for Updates…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "检查更新…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "檢查更新…"
-          }
-        }
-      }
-    },
     "Accessibility" : {
       "localizations" : {
         "en" : {
@@ -129,28 +107,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "輔助使用"
-          }
-        }
-      }
-    },
-    "Accessibility is granted. DockLift can inspect and control windows." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accessibility is granted. DockLift can inspect and control windows."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已获得辅助功能权限。DockLift 可以检查并控制窗口。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已取得輔助使用權限。DockLift 可以檢查並控制視窗。"
           }
         }
       }
@@ -195,28 +151,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "需要輔助使用權限"
-          }
-        }
-      }
-    },
-    "Accessibility: Granted" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Accessibility: Granted"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "辅助功能：已授权"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "輔助使用：已授權"
           }
         }
       }
@@ -485,24 +419,24 @@
         }
       }
     },
-    "Checking…" : {
+    "Check for Updates…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Checking…"
+            "value" : "Check for Updates…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "检查中…"
+            "value" : "检查更新…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "檢查中…"
+            "value" : "檢查更新…"
           }
         }
       }
@@ -661,72 +595,6 @@
         }
       }
     },
-    "DockLift — Accessibility required" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DockLift — Accessibility required"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DockLift — 需要辅助功能权限"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DockLift — 需要輔助使用權限"
-          }
-        }
-      }
-    },
-    "DockLift — Off" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DockLift — Off"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DockLift — 已关闭"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DockLift — 已關閉"
-          }
-        }
-      }
-    },
-    "DockLift — On" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DockLift — On"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DockLift — 已开启"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DockLift — 已開啟"
-          }
-        }
-      }
-    },
     "DockLift Bootstrap" : {
       "localizations" : {
         "en" : {
@@ -859,6 +727,22 @@
         }
       }
     },
+    "Enter DockLift" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进入 DockLift"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進入 DockLift"
+          }
+        }
+      }
+    },
     "Failed for %@: %@" : {
       "localizations" : {
         "en" : {
@@ -987,50 +871,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請授予輔助使用權限；如有提示，請將 DockLift 拖入列表。授權後將自動打開設定。"
-          }
-        }
-      }
-    },
-    "Grant Accessibility…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grant Accessibility…"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "授予辅助功能权限…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "授予輔助使用權限…"
-          }
-        }
-      }
-    },
-    "Granted" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Granted"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已授权"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已授權"
           }
         }
       }
@@ -1453,28 +1293,6 @@
         }
       }
     },
-    "Not granted" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not granted"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未授权"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未授權"
-          }
-        }
-      }
-    },
     "Only react to Dock clicks" : {
       "localizations" : {
         "en" : {
@@ -1603,28 +1421,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "結束 DockLift"
-          }
-        }
-      }
-    },
-    "Recheck" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recheck"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新检查"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新檢查"
           }
         }
       }
@@ -2043,28 +1839,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "不可用"
-          }
-        }
-      }
-    },
-    "Unknown" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unknown"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未知"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未知"
           }
         }
       }
